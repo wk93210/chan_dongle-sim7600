@@ -14,8 +14,8 @@ Asterisk channel driver for SIM7600 and compatible SIMCOM cellular modules. Supp
 ## Hardware Requirements
 
 ### Supported Modules
-- **SIM7600E-H** (Primary target, fully tested)
-- SIM7600A-H, SIM7600SA-H, SIM7600JC-H (should work)
+- **SIM7600G-H (B)** (Primary target, fully tested)
+- SIM7600A-H, SIM7600E-H, SIM7600SA-H, SIM7600JC-H (should work)
 - Other SIMCOM modules with similar AT command set
 
 ### System Requirements
