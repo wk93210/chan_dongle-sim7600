@@ -57,6 +57,7 @@ jobs:
             --without-pjproject --without-dahdi --without-libpri 2>&1 | tail -10
           make -j$(nproc) 2>&1 | tail -10
           sudo make install 2>&1 | tail -5
+          sudo make install-headers
 
       - name: Build with debug symbols
         run: |
@@ -126,6 +127,7 @@ jobs:
             --without-pjproject --without-dahdi --without-libpri 2>&1 | tail -10
           make -j$(nproc) 2>&1 | tail -10
           sudo make install 2>&1 | tail -5
+          sudo make install-headers
 
       - name: Build for CodeQL
         run: |

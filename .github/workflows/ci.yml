@@ -54,6 +54,7 @@ jobs:
             --without-pjproject --without-dahdi --without-libpri 2>&1 | tail -20
           make -j$(nproc) 2>&1 | tail -20
           sudo make install 2>&1 | tail -10
+          sudo make install-headers
           sudo make samples
 
       - name: Build chan_dongle
