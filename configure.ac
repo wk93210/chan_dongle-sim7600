@@ -154,13 +154,13 @@ else
 
   # If still not found, try common paths
   if test -z "$ASTERISK_INCLUDE_DIR"; then
-    ast_search_paths="/usr/include/asterisk /usr/local/include/asterisk /opt/asterisk/include/asterisk"
+    ast_search_paths="/usr/include /usr/local/include /opt/asterisk/include"
     if test -n "$ASTERISK_PREFIX"; then
-      ast_search_paths="$ASTERISK_PREFIX/include/asterisk $ast_search_paths"
+      ast_search_paths="$ASTERISK_PREFIX/include $ast_search_paths"
     fi
 
     for dir in $ast_search_paths; do
-      if test -f "$dir/asterisk.h"; then
+      if test -f "$dir/asterisk.h" || test -f "$dir/asterisk/asterisk.h"; then
         ASTERISK_INCLUDE_DIR="$dir"
         break
       fi
@@ -241,8 +241,8 @@ ac_save_cflags="$CFLAGS"
 CPPFLAGS="$CPPFLAGS -I$ASTERISK_INCLUDE_DIR"
 CFLAGS="$CFLAGS -I$ASTERISK_INCLUDE_DIR"
 
-if test ! -f "$ASTERISK_INCLUDE_DIR/frame.h"; then
-  AC_MSG_ERROR([asterisk/frame.h not found in $ASTERISK_INCLUDE_DIR])
+if test ! -f "$ASTERISK_INCLUDE_DIR/asterisk/frame.h"; then
+  AC_MSG_ERROR([asterisk/frame.h not found in $ASTERISK_INCLUDE_DIR/asterisk])
 fi
 
 CPPFLAGS="$ac_save_CPPFLAGS"
