@@ -58,14 +58,16 @@ jobs:
 
       - name: Build chan_dongle
         run: |
+          ./autogen.sh || true
+          ./configure
           make clean
           make
 
       - name: Run unit tests
-        run: make test
+        run: make check
 
       - name: Check module
         run: |
-          ls -la chan_dongle.so
-          file chan_dongle.so
-          nm -D chan_dongle.so | grep -E "load_module|unload_module" || true
+          ls -la .libs/chan_dongle.so
+          file .libs/chan_dongle.so
+          nm -D .libs/chan_dongle.so | grep -E "load_module|unload_module" || true
