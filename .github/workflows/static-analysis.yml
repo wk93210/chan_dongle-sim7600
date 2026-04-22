@@ -61,7 +61,7 @@ jobs:
       - name: Build with debug symbols
         run: |
           ./autogen.sh || true
-          ./configure CFLAGS="-g -O0"
+          ./configure --with-asterisk=/usr/local CFLAGS="-g -O0"
           make clean
           make
 
@@ -130,7 +130,7 @@ jobs:
       - name: Build for CodeQL
         run: |
           ./autogen.sh || true
-          ./configure
+          ./configure --with-asterisk=/usr/local
           make clean
           make
 
