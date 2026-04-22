@@ -133,7 +133,7 @@ if test -n "$ASTERISK_HEADERS"; then
   ASTERISK_INCLUDE_DIR="$ASTERISK_HEADERS"
 else
   # Try to find asterisk headers
-  ast_search_paths="/usr/include/asterisk /usr/local/include/asterisk /opt/asterisk/include/asterisk"
+  ast_search_paths="/usr/include/asterisk /usr/local/include/asterisk /opt/asterisk/include/asterisk /usr/local/include/asterisk"
   if test -n "$ASTERISK_PREFIX"; then
     ast_search_paths="$ASTERISK_PREFIX/include/asterisk $ast_search_paths"
   fi
