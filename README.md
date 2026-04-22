@@ -327,6 +327,29 @@ sudo asterisk -rx "core set debug 9"
 sudo asterisk -rx "dongle reset dongle0"
 ```
 
+### Pre-commit Hooks
+
+This project uses [pre-commit](https://pre-commit.com/) to ensure code quality.
+
+```bash
+# Install pre-commit
+pip install pre-commit
+
+# Install hooks in your local repo
+pre-commit install
+
+# Run hooks manually on all files
+pre-commit run --all-files
+```
+
+Configured hooks:
+- **Trailing whitespace** - Remove trailing whitespace
+- **End of file fixer** - Ensure files end with a newline
+- **YAML/JSON checks** - Validate configuration files
+- **clang-format** - C code formatting
+- **cppcheck** - Static analysis for C/C++
+- **Shellcheck** - Bash script linting
+
 ### Code Structure
 
 ```
@@ -349,7 +372,8 @@ chan_dongle-src/
 ├── mixbuffer.c/h     - Audio mixing
 ├── pdu.c/h           - SMS PDU encoding
 ├── ringbuffer.c/h    - Ring buffer
-└── smsdb.c/h         - SMS database
+├── smsdb.c/h         - SMS database
+└── tests/            - Unit tests
 ```
 
 ## License
@@ -378,3 +402,6 @@ For issues, questions, or contributions, please use the GitHub issue tracker.
   - Removed dead code: contrib/, test/, tools/, BUGS, TODO.txt
   - Updated documentation with sample config files
   - Fixed build for modern glibc/GCC compatibility
+  - Added unit tests for AT parsing functions
+  - Added pre-commit hooks for code quality
+  - Added GitHub Actions workflows for CI and static analysis
