@@ -18,25 +18,48 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y build-essential libsqlite3-dev
+          sudo apt-get install -y build-essential libsqlite3-dev \
+            libxml2-dev libncurses-dev libssl-dev libjansson-dev \
+            libedit-dev liburiparser-dev uuid-dev
 
-      - name: Download and install Asterisk ${{ matrix.asterisk_version }} headers
+      - name: Cache Asterisk source
+        id: cache-asterisk
+        uses: actions/cache@v4
+        with:
+          path: ~/asterisk-${{ matrix.asterisk_version }}-source
+          key: asterisk-${{ matrix.asterisk_version }}-${{ runner.os }}
+
+      - name: Download Asterisk ${{ matrix.asterisk_version }}
+        if: steps.cache-asterisk.outputs.cache-hit != 'true'
         env:
           ASTVER: ${{ matrix.asterisk_version }}
         run: |
-          wget https://downloads.asterisk.org/pub/telephony/asterisk/releases/asterisk-${ASTVER}.tar.gz
+          cd ~
+          wget -q https://downloads.asterisk.org/pub/telephony/asterisk/releases/asterisk-${ASTVER}.tar.gz
           tar xzf asterisk-${ASTVER}.tar.gz
-          cd asterisk-${ASTVER}
-          ./configure --without-pjproject --without-dahdi --without-libpri --without-ss7 --without-openr2 --without-vpb --without-lua --without-speex --without-speexdsp --without-ogg --without-portaudio --without-jansson-bundled --without-crypto --without-ssl
-          make menuselect.makeopts
-          make
-          sudo make install
+          mv asterisk-${ASTVER} asterisk-${ASTVER}-source
+
+      - name: Install Asterisk headers
+        env:
+          ASTVER: ${{ matrix.asterisk_version }}
+        run: |
+          cd ~/asterisk-${ASTVER}-source
+          ./configure --disable-all --with-sqlite3 --disable-build-native \
+            --without-pjproject --without-dahdi --without-libpri 2>&1 | tail -20
+          make -j$(nproc) 2>&1 | tail -20
+          sudo make install 2>&1 | tail -10
           sudo make samples
 
-      - name: Build for ${{ matrix.title }}
-        run: make clean && make
+      - name: Build chan_dongle
+        env:
+          ASTVER: ${{ matrix.asterisk_version }}
+        run: |
+          export CFLAGS="-I/usr/include"
+          make clean
+          make ASTERISK_VERSION_NUM=200190 2>&1
 
-      - name: Check module loads
+      - name: Check module
         run: |
           ls -la chan_dongle.so
           file chan_dongle.so
+          nm -D chan_dongle.so | grep -E "load_module|unload_module" || true
