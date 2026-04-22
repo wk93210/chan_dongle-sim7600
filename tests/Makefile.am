@@ -21,7 +21,7 @@ test_at_parse_LDADD = \
 test_at_parse_LDFLAGS = -lpthread
 
 # Test target
-check-local: test_at_parse
+check: test_at_parse
 	./test_at_parse
 
 .PHONY: test
