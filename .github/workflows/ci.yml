@@ -1,0 +1,42 @@
+name: CI
+
+on: [push, pull_request]
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - title: Asterisk 20
+            asterisk_version: "20.11.0"
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential libsqlite3-dev
+
+      - name: Download and install Asterisk ${{ matrix.asterisk_version }} headers
+        env:
+          ASTVER: ${{ matrix.asterisk_version }}
+        run: |
+          wget https://downloads.asterisk.org/pub/telephony/asterisk/releases/asterisk-${ASTVER}.tar.gz
+          tar xzf asterisk-${ASTVER}.tar.gz
+          cd asterisk-${ASTVER}
+          ./configure --without-pjproject --without-dahdi --without-libpri --without-ss7 --without-openr2 --without-vpb --without-lua --without-speex --without-speexdsp --without-ogg --without-portaudio --without-jansson-bundled --without-crypto --without-ssl
+          make menuselect.makeopts
+          make
+          sudo make install
+          sudo make samples
+
+      - name: Build for ${{ matrix.title }}
+        run: make clean && make
+
+      - name: Check module loads
+        run: |
+          ls -la chan_dongle.so
+          file chan_dongle.so
