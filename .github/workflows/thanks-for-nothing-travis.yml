@@ -10,27 +10,37 @@ jobs:
       matrix:
         include:
           - title: Asterisk 20
-            asterisk_version: 20
+            asterisk_version: "20.11.0"
 
     runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: Download ${{ matrix.title }} prerequisites
-        env:
-          ASTVER: ${{ matrix.asterisk_version }}
+      - name: Install dependencies
         run: |
-          wget http://junk.devs.nu/a/asterisk/asterisk-$ASTVER-include.tar.bz2 &&
-          tar jxf asterisk-$ASTVER-include.tar.bz2
+          sudo apt-get update
+          sudo apt-get install -y build-essential autoconf automake libtool \
+            libxml2-dev libncurses5-dev libsqlite3-dev libssl-dev \
+            libjansson-dev libedit-dev liburiparser-dev
 
-      - name: Bootstrap and configure for ${{ matrix.title }}
+      - name: Download and extract Asterisk ${{ matrix.asterisk_version }}
         env:
           ASTVER: ${{ matrix.asterisk_version }}
         run: |
-          ./bootstrap &&
-          ./configure --with-astversion=$ASTVER \
-              --with-asterisk=./asterisk-$ASTVER/include DESTDIR=/tmp \
+          wget https://downloads.asterisk.org/pub/telephony/asterisk/releases/asterisk-${ASTVER}.tar.gz
+          tar xzf asterisk-${ASTVER}.tar.gz
+          mv asterisk-${ASTVER} asterisk-${ASTVER}-source
+
+      - name: Bootstrap chan_dongle
+        run: ./bootstrap
+
+      - name: Configure for ${{ matrix.title }}
+        env:
+          ASTVER: ${{ matrix.asterisk_version }}
+        run: |
+          ./configure \
+              --with-asterisk=./asterisk-${ASTVER}-source/include \
               --enable-warnings-as-errors
 
       - name: Build for ${{ matrix.title }}
