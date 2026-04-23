@@ -1317,6 +1317,11 @@ static int at_response_cmgr(struct pvt* pvt, char * str, size_t len)
 				}
 				break;
 			case PDUTYPE_MTI_SMS_DELIVER:
+				/* rewrite international prefix 00 -> + */
+				if (strlen(oa) >= 2 && oa[0] == '0' && oa[1] == '0') {
+					memmove(oa + 1, oa + 2, strlen(oa) - 1);
+					oa[0] = '+';
+				}
 				ast_debug (1, "[%s] Successfully read SM\n", PVT_ID(pvt));
 				if (udh.parts > 1) {
 					ast_verb (1, "[%s] Got SM part from %s: '%s'; [ref=%d, parts=%d, order=%d]\n", PVT_ID(pvt), oa, msg, udh.ref, udh.parts, udh.order);
