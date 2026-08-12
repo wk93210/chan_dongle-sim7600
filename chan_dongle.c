@@ -476,6 +476,24 @@ static void *do_monitor_phone(void *data) {
 
     handle_expired_reports(pvt);
 
+    /* Fire a scheduled AT+CPCMREG=0 (set by disactivate_call ~2 s after
+     * call end). Sending it with this small delay is required: the modem
+     * silently ignores the command when it lands in the same instant as
+     * VOICE CALL: END processing. */
+    if (pvt->pcm_disable_at.tv_sec != 0 &&
+        ast_tvdiff_ms(pvt->pcm_disable_at, ast_tvnow()) <= 0) {
+      pvt->pcm_disable_at.tv_sec = 0;
+      pvt->pcm_disable_at.tv_usec = 0;
+      if (pvt->has_voice_simcom && pvt->pcm_enabled && PVT_NO_CHANS(pvt)) {
+        /* PVT_NO_CHANS: if a new call already started within the delay
+         * window, keep PCM latched for it instead of resetting the USB
+         * underneath it. */
+        ast_log(LOG_NOTICE, "[%s] SIM7600: sending delayed AT+CPCMREG=0 after call end\n", dev);
+        at_enqueue_pcmreg(&pvt->sys_chan, 0);
+        pvt->pcm_enabled = 0;
+      }
+    }
+
     if (port_status(pvt->data_fd) || port_status(pvt->audio_fd) ||
         (pvt->audio_tx_fd >= 0 && port_status(pvt->audio_tx_fd))) {
       /* SIM7600 resets USB ports after voice calls - retry before giving up */
@@ -718,6 +736,11 @@ static void *do_monitor_phone(void *data) {
        * Clear pcm_enabled so the next call will send AT+CPCMREG=1 again. */
       pvt->pcm_enabled = 0;
 
+      /* Remember when the reconnect happened: the modem can stay flaky for a
+       * few more seconds, and ping timeouts in this window should not trigger
+       * a full re-init (see the CMD_AT case in the timeout branch below). */
+      pvt->last_soft_reconnect = ast_tvnow();
+
       ast_log(LOG_NOTICE, "[%s] Soft reconnect successful, resuming normal operation\n", dev);
       port_error_count = 0;
       /* Reset AT response parser — stale data from old fd must not leak into new fd */
@@ -738,14 +761,28 @@ static void *do_monitor_phone(void *data) {
     if (t < 0)
       t = pvt->timeout;
 
+    /* Wake up in time to fire a scheduled AT+CPCMREG=0 */
+    if (pvt->pcm_disable_at.tv_sec != 0) {
+      int pcm_ms = ast_tvdiff_ms(pvt->pcm_disable_at, ast_tvnow());
+      if (pcm_ms < 0)
+        pcm_ms = 0;
+      if (t < 0 || pcm_ms < t)
+        t = pcm_ms;
+    }
+
     ast_mutex_unlock(&pvt->lock);
 
     if (!at_wait(fd, &t)) {
       ast_mutex_lock(&pvt->lock);
       ecmd = at_queue_head_cmd(pvt);
       if (ecmd) {
-        /* SIM7600 often ignores AT+CHUP while dialing; don't kill the device */
-        if (ecmd->cmd == CMD_AT_CHUP) {
+        /* SIM7600 often ignores AT+CHUP while dialing; don't kill the device.
+         * Also tolerate ping (CMD_AT) timeouts for 30 s after a soft
+         * reconnect: the modem can stay unresponsive for a while after its
+         * post-call USB reset, and a full re-init here costs 60-90 s. */
+        if (ecmd->cmd == CMD_AT_CHUP ||
+            (ecmd->cmd == CMD_AT &&
+             ast_tvdiff_ms(ast_tvnow(), pvt->last_soft_reconnect) < 30000)) {
           ast_log(LOG_WARNING,
                   "[%s] timedout while waiting '%s' in response to '%s', removing from queue\n", dev,
                   at_res2str(ecmd->res), at_cmd2str(ecmd->cmd));
