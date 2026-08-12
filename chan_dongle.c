@@ -69,6 +69,12 @@
 #include "pdiscovery.h" /* pdiscovery_lookup() pdiscovery_init() pdiscovery_fini() */
 #include "smsdb.h"
 
+/* Ensure ast_log has a visible declaration in all build configurations.
+ * Some Asterisk versions expose ast_log via macro/header variations. */
+#ifndef ast_log
+void ast_log(int level, const char *file, int line, const char *function, const char *fmt, ...);
+#endif
+
 EXPORT_DEF const char *const dev_state_strs[4] = {"stop", "restart", "remove",
                                                   "start"};
 EXPORT_DEF public_state_t *gpublic;
