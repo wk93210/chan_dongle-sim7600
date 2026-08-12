@@ -197,6 +197,8 @@ typedef struct pvt {
       has_voice_simcom : 1;  /*!< device has SIMCOM voice call support */
   unsigned int has_call_waiting : 1; /*!< call waiting enabled on device */
   unsigned int pcm_enabled : 1; /*!< SIM7600 PCM audio is enabled across calls */
+  struct timeval pcm_disable_at;     /*!< if nonzero, send AT+CPCMREG=0 when this time passes */
+  struct timeval last_soft_reconnect; /*!< time of last successful soft reconnect (zero if none) */
 
   unsigned int group_last_used : 1; /*!< mark the last used device */
   unsigned int prov_last_used : 1;  /*!< mark the last used device */

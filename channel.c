@@ -242,11 +242,19 @@ static void disactivate_call(struct cpvt* cpvt)
 		ast_channel_set_fd (cpvt->channel, 0, -1);
 		CPVT_RESET_FLAGS(cpvt, CALL_FLAG_ACTIVATED | CALL_FLAG_MASTER);
 
-		/* Keep PCM enabled between calls to avoid SIM7600 USB re-enumeration.
-		 * AT+CPCMREG=0 triggers a USB port reset that causes an 11-second
-		 * blackout during which rapid re-dial fails. */
+		/* SIM7600: schedule AT+CPCMREG=0 for ~2 s after call end.
+		 * The modem silently ignores CPCMREG=0 when it lands in the same
+		 * instant as VOICE CALL: END processing, but accepts it moments
+		 * later; the command then triggers an immediate USB re-enumeration
+		 * which the monitor thread's soft reconnect survives in ~2 s.
+		 * Leaving PCM latched is worse: the modem tears it down on its own
+		 * ~10 s later, mid-poll, which falls into full re-init and a
+		 * ~75-90 s blackout before the next call can be placed.
+		 * The monitor loop checks pcm_disable_at and sends the command. */
 		if (pvt->has_voice_simcom) {
-			ast_debug(3, "[%s] SIM7600: skipping AT+CPCMREG=0 to avoid USB reset\n", PVT_ID(pvt));
+			pvt->pcm_disable_at = ast_tvadd(ast_tvnow(), ast_tv(2, 0));
+			ast_debug(1, "[%s] SIM7600: scheduled AT+CPCMREG=0 in 2 s\n", PVT_ID(pvt));
+			CPVT_RESET_FLAGS(cpvt, CALL_FLAG_PCM_ENABLED);
 		}
 
 		ast_debug (6, "[%s] call idx %d disactivated\n", PVT_ID(pvt), cpvt->call_idx);
