@@ -12,7 +12,8 @@
 */
 #include "ast_config.h"
 
-#include <asterisk/logger.h>			/* ast_debug() */
+#include <syslog.h>				/* LOG_NOTICE */
+#include <asterisk/logger.h>			/* ast_debug(), ast_log() */
 #include <asterisk/pbx.h>			/* ast_pbx_start() */
 
 #include "ast_compat.h"				/* asterisk compatibility fixes */
