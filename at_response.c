@@ -788,7 +788,35 @@ static int at_response_cend (struct pvt * pvt, const char* str)
 }
 
 /*!
- * \brief Handle +CSCA response
+ * \brief Handle MISSED_CALL response (caller hung up while ringing)
+ * \param pvt -- pvt structure
+ * \param str -- string containing response (null terminated)
+ * \retval  0 success
+ *
+ * The SIM7600 emits "MISSED_CALL: <time> <number>" when an incoming call is
+ * cancelled before answer. Without this the ringing channel would stay up
+ * until the dialplan times out (the softphone keeps ringing).
+ */
+static int at_response_missed_call (struct pvt * pvt, const char* str)
+{
+	struct cpvt *cpvt;
+
+	ast_log (LOG_NOTICE, "[%s] %s\n", PVT_ID(pvt), str);
+
+	AST_LIST_TRAVERSE(&pvt->chans, cpvt, entry) {
+		/* Release the first call that has a channel and was never answered */
+		if (cpvt->channel && cpvt->state != CALL_STATE_RELEASED && cpvt->state != CALL_STATE_ACTIVE) {
+			CPVT_RESET_FLAGS(cpvt, CALL_FLAG_NEED_HANGUP);
+			change_channel_state(cpvt, CALL_STATE_RELEASED, 0);
+			ast_debug (1, "[%s] SIM7600: call idx %d released due to MISSED_CALL\n", PVT_ID(pvt), cpvt->call_idx);
+			break; /* cpvt was freed; do not touch the iterator */
+		}
+	}
+
+	return 0;
+}
+
+/*!
  * \param pvt -- pvt structure
  * \param str -- string containing response (null terminated)
  * \param len -- string lenght
@@ -1955,6 +1983,9 @@ int at_response (struct pvt* pvt, const struct iovec iov[2], int iovcnt, at_res_
 					}
 				}
 				return 0;
+			case RES_MISSED_CALL:
+				return at_response_missed_call (pvt, str);
+
 			case RES_CEND:
 				return at_response_cend (pvt, str);
 
